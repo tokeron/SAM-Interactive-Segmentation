@@ -538,6 +538,11 @@ def create_interface():
             <h2>SAM 2.1 + Grounding DINO</h2>
             <p><strong>✨ Just type what you want to segment!</strong> Try "person", "face", "car", "dog" - or click points manually.</p>
             <p>🎭 Generate multiple mask options and pick your favorite!</p>
+            <hr style="margin: 20px 0;">
+            <p style="font-size: 12px; color: #666;">
+                <strong>Acknowledgment:</strong> This is a GUI interface for research by Meta AI (SAM 2.1) and IDEA Research (Grounding DINO).<br>
+                All credit goes to the original researchers. This tool only provides an easy-to-use web interface.
+            </p>
         </div>
         """)
 
@@ -614,12 +619,19 @@ def create_interface():
 
         # Save controls under mask
         with gr.Row():
-            mask_name_input = gr.Textbox(label="Folder name (optional)", placeholder="e.g., michael_phelps_bottom_left")
-            save_btn = gr.Button("💾 Save Mask", variant="stop", size="lg")
+            mask_name_input = gr.Textbox(label="Folder name (optional)", placeholder="e.g., michael_phelps_bottom_left", scale=2)
+            format_selector = gr.Radio(
+                choices=["PNG", "JPG", "PT"],
+                value="PNG",
+                label="📁 Download Format",
+                scale=1
+            )
+            save_btn = gr.Button("💾 Save & Download", variant="stop", size="lg", scale=1)
 
-        # Status
+        # Status and Download
         with gr.Row():
-            status_text = gr.Textbox(label="📊 Status", interactive=False, lines=3)
+            status_text = gr.Textbox(label="📊 Status", interactive=False, lines=3, scale=2)
+            download_file = gr.File(label="📥 Download", visible=False, scale=1)
 
         # State to store points and masks
         points_state = gr.State([])
@@ -780,14 +792,50 @@ def create_interface():
             
             return mask_visualization, new_index, mask_info_text
 
-        def save_current_mask(custom_folder_name):
-            """Save the currently generated mask."""
+        def save_and_download_mask(custom_folder_name, download_format):
+            """Save mask locally and prepare download for user."""
             global CURRENT_MASK, CURRENT_IMAGE_NAME, CURRENT_POINTS
             if CURRENT_MASK is None:
-                return "❌ No mask to save. Generate a mask first."
+                return "❌ No mask to save. Generate a mask first.", None
             if CURRENT_POINTS is None:
-                return "❌ No points available. Generate a mask first."
-            return save_binary_mask(CURRENT_MASK, CURRENT_IMAGE_NAME, CURRENT_POINTS, 0.0, 0, False, custom_folder_name=(custom_folder_name or None))
+                return "❌ No points available. Generate a mask first.", None
+            
+            try:
+                # Save locally (keep existing hierarchy)
+                local_save_status = save_binary_mask(
+                    CURRENT_MASK, CURRENT_IMAGE_NAME, CURRENT_POINTS, 
+                    0.0, 0, False, custom_folder_name=(custom_folder_name or None)
+                )
+                
+                # Create download file
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                base_name = os.path.splitext(os.path.basename(CURRENT_IMAGE_NAME or "mask"))[0]
+                
+                if download_format == "PNG":
+                    # Create PNG for download
+                    binary_mask = (CURRENT_MASK > 0).astype(np.uint8) * 255
+                    mask_image = Image.fromarray(binary_mask, mode='L')
+                    download_path = f"/tmp/mask_{base_name}_{timestamp}.png"
+                    mask_image.save(download_path, format="PNG")
+                    
+                elif download_format == "JPG":
+                    # Create JPG for download
+                    binary_mask = (CURRENT_MASK > 0).astype(np.uint8) * 255
+                    mask_image = Image.fromarray(binary_mask, mode='L')
+                    download_path = f"/tmp/mask_{base_name}_{timestamp}.jpg"
+                    mask_image.save(download_path, format="JPEG", quality=95)
+                    
+                elif download_format == "PT":
+                    # Create PyTorch tensor for download
+                    download_path = f"/tmp/mask_{base_name}_{timestamp}.pt"
+                    torch.save(torch.from_numpy((CURRENT_MASK > 0).astype(np.float32)), download_path)
+                
+                # Make download visible and return file
+                download_status = f"✅ {local_save_status}\n📥 Download ready: {download_format} format"
+                return download_status, gr.File.update(value=download_path, visible=True)
+                
+            except Exception as e:
+                return f"❌ Save/download failed: {str(e)}", None
 
         # Wire events
         # Let the annotatable image also handle image uploads (drag & drop / click upload)
@@ -842,9 +890,9 @@ def create_interface():
         )
 
         save_btn.click(
-            save_current_mask,
-            inputs=[mask_name_input],
-            outputs=[status_text]
+            save_and_download_mask,
+            inputs=[mask_name_input, format_selector],
+            outputs=[status_text, download_file]
         )
     
     return interface
