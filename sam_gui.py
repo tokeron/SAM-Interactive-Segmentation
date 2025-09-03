@@ -534,8 +534,10 @@ def create_interface():
         """) as interface:
         gr.HTML("""
         <div style="text-align: center;">
-            <h1>🎯 SAM 2.1 + Grounding DINO Annotator</h1>
-            <p>Upload an image and either click to add points OR enter text prompts for automatic detection and masking.</p>
+            <h1>🎯 AI-Powered Image Segmentation</h1>
+            <h2>SAM 2.1 + Grounding DINO</h2>
+            <p><strong>✨ Just type what you want to segment!</strong> Try "person", "face", "car", "dog" - or click points manually.</p>
+            <p>🎭 Generate multiple mask options and pick your favorite!</p>
         </div>
         """)
 
@@ -858,9 +860,11 @@ def main():
     
     interface.launch(
         server_port=int(os.environ.get("GRADIO_SERVER_PORT", 7860)),
-        share=False,
+        share=True,  # Enable public sharing
         inbrowser=False,  # Don't auto-open browser in server environment
-        show_error=True
+        show_error=True,
+        server_name="0.0.0.0",  # Allow external connections
+        auth=None  # No authentication for public access
     )
 
 if __name__ == "__main__":

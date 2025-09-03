@@ -1,3 +1,9 @@
+---
+title: SAM
+app_file: fixed_sam_interface.py
+sdk: gradio
+sdk_version: 5.44.1
+---
 # 🎭 SAM 2.0 Interactive Segmentation App
 
 A beautiful and intuitive Streamlit web application for interactive image segmentation using Meta's Segment Anything Model 2.0 (SAM 2.0).
