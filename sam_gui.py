@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Fixed SAM 2.1 Interface - Handles negative stride issues properly
+SAM 2.1 Interface
 """
 
 import torch
@@ -560,6 +560,7 @@ def create_interface():
             text_prompt_input = gr.Textbox(
                 label="🔍 Text Prompt (Optional)",
                 placeholder="Type what to segment (e.g., 'person', 'car', 'dog') and press Enter",
+                value="snoopy",
                 interactive=True,
                 info="💡 Text = auto-detection | Empty + clicking = manual points | Text takes priority if both provided",
                 scale=4
@@ -593,7 +594,8 @@ def create_interface():
                 original_with_input = gr.Image(
                     label="📍 Click to Annotate (toggle negative mode to exclude)",
                     height=640,
-                    interactive=True
+                    interactive=True,
+                    value="data/snoopy.jpg"
                 )
             with gr.Column(scale=1):
                 points_overlay = gr.Image(label="📍 Points Preview (green=positive, red=negative)", height=720, interactive=False)
